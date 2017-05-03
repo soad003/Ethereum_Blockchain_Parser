@@ -5,7 +5,7 @@ import os
 import pdb
 
 DB_NAME = "blockchain"
-COLLECTION = "transactions"
+COLLECTION = "blocks"
 
 # mongodb
 # -------

@@ -9,6 +9,9 @@ import time
 import pymongo
 DIR = "."
 
+COLLECTION_READ = "blocks"
+COLLECTION_WRITE = "contracts"
+
 class ContractMap(object):
     """
     A hash map of all contract addresses in the Ethereum network.
@@ -93,10 +96,9 @@ class ContractMap(object):
         Iterate through all blocks and search for new contract addresses.
         Append them to self.addresses if found.
         """
-        blocks = self.client.find(
-            {"number": {"$gt": self.last_block}},
-            sort=[("number", pymongo.ASCENDING)]
-        )
+        blocks = self.client[COLLECTION_READ].find()
+
+        print("read")
         counter = 0
         for block in blocks:
             if block["transactions"]:
@@ -112,12 +114,15 @@ class ContractMap(object):
                         # Add addressees if there is non-empty data
                         if code != "0x":
                             self.addresses[txn["to"]] = 1
+                            print("add " + txn["to"])
+                            self.client[COLLECTION_WRITE].insert_one({ "address": txn["to"], 
+                                                        "bytecode": code })
 
             self.last_block = block["number"]
             counter += 1
             # Save the list every 10000 blocks in case geth crashes
             # midway through the procedure
-            if not counter % 10000:
+            if counter % 10000 == 0:
                 print("Done with block {}...".format(self.last_block))
                 self.save()
 
