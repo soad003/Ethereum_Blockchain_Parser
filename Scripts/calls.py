@@ -24,10 +24,10 @@ for contract in contracts:
   output = ""
   try:
     print("try ctor "  + contract["address"])
-    output = subprocess.check_output('./main -ctor -json -output=calls < code.bin', shell=True, stderr=subprocess.STDOUT).decode("utf-8")
+    output = subprocess.check_output('./main -ctor -json -output=calls < code_calls.bin', shell=True, stderr=subprocess.STDOUT).decode("utf-8")
   except subprocess.CalledProcessError as e:
     print("try non ctor "  + contract["address"])
-    output = subprocess.check_output('./main -json -output=calls < code.bin', shell=True).decode("utf-8")
+    output = subprocess.check_output('./main -json -output=calls < code_calls.bin', shell=True).decode("utf-8")
 
   brr = json.loads(output)
 

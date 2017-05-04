@@ -32,7 +32,7 @@ db = mongo[DB_NAME]
 collection_blocks = db[COLLECTION]
 collection_contracts = db[COLLECTION_WRITE]
 
-blocks = collection_blocks.find({"transactions.to": None }).skip(10000).limit(10)
+blocks = collection_blocks.find({"transactions.to": None })
 
 for block in blocks:
   if block["transactions"]:
@@ -49,7 +49,8 @@ for block in blocks:
 
         collection_contracts.update({"address": adr}, \
         { "$set": { "bytecode_ctor" : code_before_ctor, "block_number": block["number"]}, \
-        "$setOnInsert" : { "address": adr, "bytecode" : null, "bytecode_ctor" : code_before_ctor, "block_number": block["number"] }})
+        "$setOnInsert" : { "address": adr, "bytecode" : None, "bytecode_ctor" : code_before_ctor, "block_number": block["number"] }}, \
+        upsert = True)
 
 
 
