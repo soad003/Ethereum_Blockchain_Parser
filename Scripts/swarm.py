@@ -21,7 +21,7 @@ for contract in contracts:
   file.write(code) 
 
   file.close()
-  output = subprocess.check_output('./main -printSwarm -json < code.bin', shell=True).decode("utf-8")
+  output = subprocess.check_output('./main -json output=swarmHash < code.bin', shell=True).decode("utf-8")
 
   if output:
     hash = json.loads(output).decode('utf-8')["swarmHash"]
