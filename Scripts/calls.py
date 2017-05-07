@@ -15,6 +15,7 @@ contracts = collection.find()
 
 for contract in contracts:
   code = contract["bytecode"][2:]
+  init = contract["bytecode_ctor"][2:]
   #print(code)
   file = open("code_calls.bin", "w")
 
@@ -33,7 +34,7 @@ for contract in contracts:
 
   if type(brr) == list:
     #print(json.dumps(brr, indent=4))
-    collection.update({"_id": contract["_id"]}, { "$set": { "calls" : output}})
+    collection.update({"_id": contract["_id"]}, { "$set": { "calls" : brr}})
 
   #else:
     #print("no swarm hash")

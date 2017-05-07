@@ -55,10 +55,54 @@ print("Active Contracts with swarm hashes")
 swarm_hashes = collection_contracts.find({"swarm_hash": { "$not": { "$eq": None}}}).count()
 print(swarm_hashes)
 
+ctor_subset= {"ctor_subset": False}
+ctor_subset_nullPadded= {"ctor_subset_nullPadded": False}
+
+print("bytecode is not subeset ot init bytecode")
+byinctor = collection_contracts.find(ctor_subset).count()
+print(byinctor)
+
+print("bytecode is not subeset ot init bytecode modulo padding (created code on deployment?)")
+byinctor_modulo_padding = collection_contracts.find({"$and": [ctor_subset_nullPadded,ctor_subset]}).count()
+print(byinctor_modulo_padding)
+
 #there should not be an entry without bytecode and constructor code... (suicide of a contract created addr?)
 assert collection_contracts.find({"$and": [nullInitBytecode, nullBytecode]}).count() == 0
 
-print("avg code size")
+
+contracts = collection_contracts.find()
+bytecodesize = 0
+bytecodeinitsize = 0
+bytecodediff = 0
+for contract in contracts:
+  bytecode = contract["bytecode"]
+  bytecode_ctor = contract["bytecode_ctor"]
+  if bytecode:
+    bytecodesize = bytecodesize + len(bytecode[2:])
+  if bytecode_ctor:
+    bytecodeinitsize = bytecodeinitsize +  len(bytecode_ctor[2:])
+  if bytecode and bytecode_ctor:
+    bytecodediff = bytecodediff + ( len(bytecode_ctor[2:]) - len(bytecode[2:]))
+
+  
+print("avg bytecode size, with swarm hash...")
+print(bytecodesize / active)
+
+print("avg init transaction size with swarm and params")
+print(bytecodeinitsize / contracts_with_init_trans)
+
+
+print("avg diff between init and actual code")
+print(bytecodediff / active_user)
+
+
+print("contracts with swarm hashes")
+swarm_content = collection_contracts.find({"swarm_content": {"$not": {"$eq": None}}})
+swarm_hashes = collection_contracts.find({"swarm_hash": {"$not": {"$eq": None}}})
+print("hashes: " + str(swarm_hashes.count()))
+print("content: " + str(swarm_content.count()))
+
+
 # print(collection_contracts.aggregate([
 #    {
 #         "$project": {
