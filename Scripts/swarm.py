@@ -41,6 +41,7 @@ nullContent = { "swarm_content" : { "$exists": False }}
 #   i = i + 1
 
 notfound = defaultdict()
+found = defaultdict()
 contracts = collection.find({"$and" : [swarmHash, nullContent]}, no_cursor_timeout=True)
 #contracts = collection.find({"swarm_content": {"$not": {"$eq": None}}})
 
@@ -48,11 +49,22 @@ i = 0
 a = contracts.count()
 for contract in contracts:
   hash = contract["swarm_hash"]
-  if not (hash in notfound):
-    r = requests.get("http://swarm-gateways.net/bzzr:/" + hash)
+  if hash in notfound:
+    print(str(i) + "/" + str(a) + ": " + hash + " shortcut not found")
+    collection.update({"_id": contract["_id"]}, { "$set": { "swarm_content" : None}})
+  elif hash in found:
+    print(str(i) + "/" + str(a) + ": " + hash + " shortcut found")
+    collection.update({"_id": contract["_id"]}, { "$set": { "swarm_content" : found[hash]}})
+  else:
+    try:
+      r = requests.get("http://swarm-gateways.net/bzzr:/" + hash, timeout=4.0)
+    except requests.exceptions.RequestException:
+      print(str(i) + "/" + str(a) + ": " + hash + " timeout")
+      continue
     print(str(i) + "/" + str(a) + ": " + hash + " " + str(r.status_code))
     if r.status_code == 200:
       print("found")
+      found[hash] = r.text
       collection.update({"_id": contract["_id"]}, { "$set": { "swarm_content" : r.text}})
     else:
       print("nothing found")

@@ -54,7 +54,10 @@ if arg1 != "sanity":
 
   print("Active Contracts without contracts without transactions")
   active = collection_contracts.find(activeContract).count()
+  has_init = {"$or": [nonNullInitBytecode, nonNullInitETHBytecode]}
+  active_with_init_avail = collection_contracts.find({"$and": [activeContract, has_init]}).count()
   print(active)
+  print("with known init: " + str(active_with_init_avail))
 
   print("Active Contracts that are User Created via transaction")
   active_user = collection_contracts.find({"$and": [nonNullInitBytecode, activeContract]}).count() # or eth
@@ -125,11 +128,27 @@ if arg1 != "sanity":
   print("hashes: " + str(swarm_hashes.count()))
   print("content: " + str(swarm_content.count()))
 
+  print("calls (active)")
+  hasCalls = {"calls": {"$not": {"$eq": None}}}
+  callsExists = {"calls": {"$exists": True}}
+  errors = {"calls_error": True}
+
+  calls = collection_contracts.find({"$and": [callsExists, hasCalls, activeContract]})
+  errors = collection_contracts.find({"$and": [errors, activeContract]})
+  noCalls = collection_contracts.find({"$and": [{"calls": None}, activeContract]})
+  print("contracts with calls: " + str(calls.count()))
+  print("contracts analysis errors: " + str(errors.count()))
+  print("no results: " + str(noCalls.count()))
+  print("contracts without calls: " + str(noCalls.count()-errors.count()))
+  assert active == calls.count() + noCalls.count()
+
 
   print("########################## ETH SCRIPT ADDITIONS")
   print("new by this script " + str(collection_contracts.find(eth_new).count()))
   print("internal " + str(collection_contracts.find(internal).count()))
   print("suicide " + str(collection_contracts.find(suicide).count()))
+
+
 
 
 
