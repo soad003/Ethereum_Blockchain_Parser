@@ -7,6 +7,7 @@ import datetime
 import pytz
 import sys
 from bson.code import Code
+import statistics
 
 DB_NAME = "blockchain"
 COLLECTION = "blocks"
@@ -36,6 +37,9 @@ notInvalBytecode_ETH = {"bytecode": "0x"}
 notInternal = {"internal": False}
 
 activeContract = nonNullBytecode
+
+print("first contrtact in block :")
+print(list(collection_contracts.aggregate( [ { "$group": { "_id": {}, "minBlock": { "$min": "$block_number" } } } ] )))
 
 if len(sys.argv) > 1:
   arg1 = str(sys.argv[1])
@@ -75,6 +79,31 @@ if arg1 != "sanity":
   contracts_dead = collection_contracts.find({"$and": [nonNullInitBytecode, nullBytecode]}).count()
   print(contracts_dead)
 
+  print("Suicide")
+  suicide = {"suicide": True}
+  cd = collection_contracts.find(suicide).count()
+  print("committed suicide: " + str(cd))
+
+  contract_livespan = 0
+  sui=collection_contracts.find({"$and": [suicide]})
+  sui_count = sui.count()
+  bla = []
+  for c in sui:
+    block_number = c["block_number"]
+    if "suicide_block" in c:
+      sui_block_number = c["suicide_block"]
+      if sui_block_number < block_number:
+        print("created at: " + str(block_number) + " suicide at: " + str(sui_block_number)) 
+      livespan = sui_block_number - block_number
+      bla.append(livespan)
+      contract_livespan +=livespan
+    else:
+      print("no sui block found " + c["address"])
+
+  print("AVG livespan contract dead: " + str(contract_livespan/sui_count))
+  print("mean livespan : " + str(statistics.mean(bla)))
+
+
   print("internal contract creations that failed")
   internal_dead = collection_contracts.find({"$and": [nullInitBytecode, nullBytecode, nonNullInitETHBytecode, notInternal]}).count() == 0 #not internal ???
 
@@ -108,9 +137,7 @@ if arg1 != "sanity":
       bytecodeinitsize = bytecodeinitsize +  len(bytecode_ctor[2:])
     if bytecode and bytecode_ctor:
       bytecodediff = bytecodediff + ( len(bytecode_ctor[2:]) - len(bytecode[2:]))
-
-
-    
+  
   print("avg bytecode size, with swarm hash... (active)")
   print(bytecodesize / active)
 

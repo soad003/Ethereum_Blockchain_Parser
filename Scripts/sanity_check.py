@@ -50,18 +50,25 @@ errors = {"calls_error": True}
 
 noblockNrExists = {"block_number": {"$exists": False}}
 
+suicide = {"suicide": True}
+notSuicideBlockExists = {"suicide_block": {"$exists": False}}
+
 
 #Sanity checks
 #there should not be an entry without bytecode and constructor code... (suicide of a contract created addr?)
 
 print("running sanity checks")
 #collection_contracts.remove({ "$and" : [{"bytecode":None}, {"bytecode_ctor":None},{"bytecode_ETH":None}, {"bytecode_ctor_ETH":None} ] })
+assert collection_contracts.find({"$and": [nonNullBytecode, suicide]}).count() == 0
+assert collection_contracts.find({"$and": [suicide, notSuicideBlockExists]}).count() == 0
+
 assert collection_contracts.find({"$and": [nonNullBytecode, noblockNrExists]}).count() == 0
 assert collection_contracts.find({"$and": [nullInitBytecode, nullBytecode, nonNullInitETHBytecode, nullInitETHBytecode]}).count() == 0
 assert collection_contracts.find({"$and": [nullInitBytecode, nullBytecode, nullInitETHBytecode, nullETHBytecode]}).count() == 0
 assert collection_contracts.find({"$or": [notInvalInitBytecode, notInvalBytecode, notInvalInitBytecode_ETH, notInvalBytecode_ETH]}).count() == 0
 assert collection_contracts.find({"$and": [suicide, nonNullBytecode]}).count() == 0
 assert collection_contracts.find({"$and": [nullInitBytecode, nonNullBytecode, notInternal]}).count() == 0
+
 # assert collection_contracts.find({"$and": [nonNullBytecode, nullInitBytecode, ]}).count() == 0
 contracts = collection_contracts.find()
 for contract in contracts:
