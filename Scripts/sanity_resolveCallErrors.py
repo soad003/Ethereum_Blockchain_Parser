@@ -1,4 +1,4 @@
-#from pymongo import MongoClient
+from pymongo import MongoClient
 import subprocess
 import json
 import requests
@@ -18,11 +18,13 @@ contracts = collection.find({ "$and": [Error, noErrorOut]}, no_cursor_timeout=Tr
 
 def getCtorCode(contract):
   bytecode_ctor = None
-  if "bytecode_ctor" in contract and contract["bytecode_ctor"] != None:
+  if "bytecode_ctor" in contract and contract["bytecode_ctor"] != None and contract["bytecode_ctor"] != "0x": 
     bytecode_ctor = contract["bytecode_ctor"]
   else:
-    if "bytecode_ctor_ETH" in contract:
+    if "bytecode_ctor_ETH" in contract and contract["bytecode_ctor_ETH"] != None and contract["bytecode_ctor_ETH"] != "0x":
       bytecode_ctor = contract["bytecode_ctor_ETH"]
+    else:
+      print(str(contract["address"]) + "no bytecode")
   return bytecode_ctor
 
 
@@ -30,8 +32,11 @@ nr = contracts.count()
 
 i = 1
 for contract in contracts:
-  code = contract["bytecode"][2:]
+  #code = contract["bytecode"][2:]
   init = getCtorCode(contract)[2:]
+  if init == None:
+    i+=1
+    continue
   #print(code)
   file = open("code_calls.bin", "w")
 

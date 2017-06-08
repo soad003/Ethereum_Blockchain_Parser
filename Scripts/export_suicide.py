@@ -13,7 +13,7 @@ db = mongo[DB_NAME]
 collection_contracts = db[COLLECTION]
 
 suicide = {"suicide": True}
-# cd = collection_contracts.find(suicide).sort("suicide_block",1)
+cd = collection_contracts.find(suicide).sort("suicide_block",1)
 
 # print("creation_block;suicide_block;address")
 # last = None
@@ -29,13 +29,44 @@ suicide = {"suicide": True}
 
 
 
+# grr = collection_contracts.aggregate([
+#   {"$group" :
+#     {"_id":"$suicide_block", "count":{"$sum":1}}
+#   },
+#   {"$sort":{"_id":-1}}
+# ])
+
+# print("suicide_block;count")
+# for c in grr:
+#   print('{0};{1}'.format(c["_id"],c["count"]))
+
+
 grr = collection_contracts.aggregate([
   {"$group" :
     {"_id":"$suicide_block", "count":{"$sum":1}}
   },
-  {"$sort":{"_id":-1}}
+  {"$sort":{"_id":1}}
 ])
 
-print("suicide_block;count")
+print("from;to;count")
+count_all = 0
+MAX = 3633433
+STEP = 100000
+from_block =  0
+to_block = STEP
 for c in grr:
-  print('{0};{1}'.format(c["_id"],c["count"]))
+  block = c["_id"]
+  count = c["count"]
+  if block == None:
+    continue
+  if block and block < to_block:
+    count_all += count
+  else:
+    print('{0};{1};{2}'.format(from_block,to_block,count_all))
+    count_all = 0
+    count_all += count
+    from_block+=STEP
+    to_block+=STEP
+  #print(block,count)
+
+print('{0};{1};{2}'.format(from_block,to_block,count_all))
