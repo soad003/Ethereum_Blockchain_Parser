@@ -65,7 +65,7 @@ def handle_analysis_error(contract, block, addr):
   DG.add_node(addr, trustless = False, block_nr = block, trivially_not = True)
 
 def handle_has_calls(calls, block, addr):
-  print(calls)
+  #print(calls)
   ctor = calls["ctor"]
   code = calls["code"]
 
@@ -136,7 +136,7 @@ def create_graph():
   for contract in contracts:
     i += 1
     adr = sanatizeAddr(contract["address"])
-    block = contract["block_number"]
+    block = int(contract["block_number"])
 
     # sort out contracts with analysis errors assume we do not trust them
     if "calls_error" in contract:
@@ -188,18 +188,20 @@ def analyse_graph():
   print("nodes: " + str(len(DG.nodes())))
   print("loop nodes : " + str(len(state.nodes_with_loops )))
   print("self loop nodes : " + str(len(DG.nodes_with_selfloops())))
+  for sl in DG.nodes_with_selfloops():
+    print(sl)
   print("annotated " + str(len(list(filter(lambda x: "trustless" in DG.node[x], DG.nodes())))))
   print("annotated blocknumber " + str(len(list(filter(lambda x: "block_nr" in DG.node[x], DG.nodes())))))
   print("trustless " + str(len(list(filter(lambda x: "trustless" in DG.node[x] and DG.node[x]["trustless"], DG.nodes())))))
 
   print("largest degree")
-  print(take(5, sorted(DG.nodes(), key = lambda x: DG.degree(x), reverse=True)))
+  print(list(map(lambda x: (x, DG.degree(x)),take(7, sorted(DG.nodes(), key = lambda x: DG.degree(x), reverse=True)))))
 
   print("largest out degree")
-  print(take(5, sorted(DG.nodes(), key = lambda x: DG.out_degree(x), reverse=True)))
+  print(list(map(lambda x: (x, DG.out_degree(x)),take(7, sorted(DG.nodes(), key = lambda x: DG.out_degree(x), reverse=True)))))
 
   print("largest in degree")
-  print(take(5, sorted(DG.nodes(), key = lambda x: DG.in_degree(x), reverse=True)))
+  print(list(map(lambda x: (x, DG.in_degree(x)),take(7, sorted(DG.nodes(), key = lambda x: DG.in_degree(x), reverse=True)))))
   print()
 
 # MAIN
@@ -208,12 +210,13 @@ def main():
 
   if not os.path.isfile(GRAPH_FILE):
     create_graph()
+    compute_trustlessness()
     safe_state()
   else:
     print("recover state...")
     recover_state()
 
-  compute_trustlessness()
+  
 
   analyse_graph()
 
