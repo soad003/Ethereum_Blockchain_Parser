@@ -95,13 +95,17 @@ if arg1 != "sanity":
       if sui_block_number < block_number:
         print("created at: " + str(block_number) + " suicide at: " + str(sui_block_number)) 
       livespan = sui_block_number - block_number
-      bla.append(livespan)
+      if(livespan > 0):
+        bla.append(livespan)
       contract_livespan +=livespan
     else:
       print("no sui block found " + c["address"])
 
   print("AVG livespan contract dead: " + str(contract_livespan/sui_count))
   print("mean livespan : " + str(statistics.mean(bla)))
+  print("median livespan : " + str(statistics.median(bla)))
+  abcd = collection_contracts.find({"$where": "this.block_number == this.suicide_block" }).count()
+  print("with livespan 0: " + str(abcd))
 
 
   print("internal contract creations that failed")
@@ -128,11 +132,13 @@ if arg1 != "sanity":
   bytecodesize = 0
   bytecodeinitsize = 0
   bytecodediff = 0
+  bytecode_sizes = []
   for contract in contracts:
     bytecode = contract["bytecode"]
     bytecode_ctor = contract["bytecode_ctor"] 
     if bytecode:
       bytecodesize = bytecodesize + len(bytecode[2:])
+      bytecode_sizes.append(len(bytecode[2:]))
     if bytecode_ctor:
       bytecodeinitsize = bytecodeinitsize +  len(bytecode_ctor[2:])
     if bytecode and bytecode_ctor:
@@ -140,6 +146,8 @@ if arg1 != "sanity":
   
   print("avg bytecode size, with swarm hash... (active)")
   print(bytecodesize / active)
+  print("mean: " + str(statistics.mean(bytecode_sizes)))
+  print("median: " + str(statistics.median(bytecode_sizes)))
 
   print("avg init transaction size with swarm and params")
   print(bytecodeinitsize / contracts_with_init_trans)
