@@ -32,6 +32,7 @@ class State(object):
     self.disabled_contracts = defaultdict()
     self.nodes_with_loops = defaultdict()
     self.has_calls_and_error = defaultdict()
+    self.attack = defaultdict()
 
 state = State()
 
@@ -90,6 +91,10 @@ def handle_has_calls(calls, block, addr):
     if call_addr == None:
       DG.add_edge(addr, UNKNOWNNAME)
     else:
+      if call_addr in state.attack:
+        print(call_addr + " is in attack")
+
+
       # only include calls to active contracts
       if call_addr in state.active_contracts:
         DG.add_edge(addr, call_addr)
@@ -110,16 +115,23 @@ def create_graph():
   # MONGO FILTERS
   nonNullBytecode = {"bytecode": { "$not": { "$eq": None}}}
   nullBytecode = {"bytecode": None}
+  notAttack ={"attack": {"$exists": False}}
+  #notAttack = {}
 
   # INIT Active Contracts
-  contracts = collection.find({ "$and": [nonNullBytecode]})
+  contracts = collection.find({ "$and": [nonNullBytecode, notAttack]})
   for c in contracts:
     state.active_contracts[sanatizeAddr(c["address"])] = True
 
   # INIT Disabled Contracts
-  contracts = collection.find({ "$and": [nullBytecode]})
+  contracts = collection.find({ "$and": [nullBytecode, notAttack]})
   for c in contracts:
     state.disabled_contracts[sanatizeAddr(c["address"])] = True
+
+  # INIT attack Contracts
+  contracts = collection.find({"attack": {"$exists": True}})
+  for c in contracts:
+    state.attack[sanatizeAddr(c["address"])] = True
 
   # INIT FIXED GRAPH NODES With trustless properties
   DG.add_node(UNKNOWNNAME, trustless = False)
@@ -128,7 +140,7 @@ def create_graph():
     DG.add_node(sanatizeAddr(adr), trustless = True)
 
   # LOAD ALL ACTIVE CONTRACTS
-  contracts = collection.find({ "$and": [nonNullBytecode]}) # .limit(10000)
+  contracts = collection.find({ "$and": [nonNullBytecode, notAttack]}) # .limit(10000)
   nr = contracts.count()
   i = 0
 
@@ -198,7 +210,7 @@ def analyse_graph():
   print(list(map(lambda x: (x, DG.degree(x)),take(7, sorted(DG.nodes(), key = lambda x: DG.degree(x), reverse=True)))))
 
   print("largest out degree")
-  print(list(map(lambda x: (x, DG.out_degree(x)),take(7, sorted(DG.nodes(), key = lambda x: DG.out_degree(x), reverse=True)))))
+  print(list(map(lambda x: (x, DG.out_degree(x)),take(20, sorted(DG.nodes(), key = lambda x: DG.out_degree(x), reverse=True)))))
 
   print("largest in degree")
   print(list(map(lambda x: (x, DG.in_degree(x)),take(7, sorted(DG.nodes(), key = lambda x: DG.in_degree(x), reverse=True)))))

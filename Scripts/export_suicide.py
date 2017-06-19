@@ -14,7 +14,8 @@ db = mongo[DB_NAME]
 collection_contracts = db[COLLECTION]
 
 suicide = {"suicide": True}
-cd = collection_contracts.find(suicide).sort("suicide_block",1)
+notAttack ={"attack": {"$exists": False}}
+cd = collection_contracts.find({"$and": [suicide, notAttack]}).sort("suicide_block",1)
 
 # # print("creation_block;suicide_block;address")
 # # last = None
@@ -32,7 +33,7 @@ cd = collection_contracts.find(suicide).sort("suicide_block",1)
 #     #print('{0};{1};{2}'.format(b,bn, addr))
 
 # print(str(statistics.mean(l)))
-print(str(statistics.median(l)))
+#print(str(statistics.median(l)))
 
 # grr = collection_contracts.aggregate([
 #   {"$group" :
@@ -46,12 +47,13 @@ print(str(statistics.median(l)))
 #   print('{0};{1}'.format(c["_id"],c["count"]))
 
 
-# grr = collection_contracts.aggregate([
-#   {"$group" :
-#     {"_id":"$suicide_block", "count":{"$sum":1}}
-#   },
-#   {"$sort":{"_id":1}}
-# ])
+grr = collection_contracts.aggregate([
+  {"$match": notAttack},
+  {"$group" :
+    {"_id":"$suicide_block", "count":{"$sum":1}}
+  },
+  {"$sort":{"_id":1}}
+])
 
 print("from;to;count")
 count_all = 0

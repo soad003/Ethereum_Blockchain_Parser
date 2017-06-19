@@ -36,7 +36,13 @@ notInvalInitBytecode_ETH = {"bytecode_ctor": "0x"}
 notInvalBytecode_ETH = {"bytecode": "0x"}
 notInternal = {"internal": False}
 
-activeContract = nonNullBytecode
+# activeContract = nonNullBytecode
+# notAttack = {}
+# null_lifetime_query = {"$where": "this.block_number == this.suicide_block" }
+
+notAttack ={"attack": {"$exists": False}}
+activeContract = {"$and": [nonNullBytecode, notAttack]}
+null_lifetime_query = {"$where": "this.block_number == this.suicide_block && this.attack == null" }
 
 print("first contrtact in block :")
 print(list(collection_contracts.aggregate( [ { "$group": { "_id": {}, "minBlock": { "$min": "$block_number" } } } ] )))
@@ -85,7 +91,7 @@ if arg1 != "sanity":
   print("committed suicide: " + str(cd))
 
   contract_livespan = 0
-  sui=collection_contracts.find({"$and": [suicide]})
+  sui=collection_contracts.find({"$and": [suicide, notAttack]})
   sui_count = sui.count()
   bla = []
   for c in sui:
@@ -95,8 +101,8 @@ if arg1 != "sanity":
       if sui_block_number < block_number:
         print("created at: " + str(block_number) + " suicide at: " + str(sui_block_number)) 
       livespan = sui_block_number - block_number
-      if(livespan > 0):
-        bla.append(livespan)
+      #if(livespan > 0):
+      bla.append(livespan)
       contract_livespan +=livespan
     else:
       print("no sui block found " + c["address"])
@@ -104,7 +110,7 @@ if arg1 != "sanity":
   print("AVG livespan contract dead: " + str(contract_livespan/sui_count))
   print("mean livespan : " + str(statistics.mean(bla)))
   print("median livespan : " + str(statistics.median(bla)))
-  abcd = collection_contracts.find({"$where": "this.block_number == this.suicide_block" }).count()
+  abcd = collection_contracts.find(null_lifetime_query).count()
   print("with livespan 0: " + str(abcd))
 
 
@@ -120,11 +126,11 @@ if arg1 != "sanity":
   ctor_subset_nullPadded= {"ctor_subset_nullPadded": False}
 
   print("bytecode is not subeset ot init bytecode")
-  byinctor = collection_contracts.find(ctor_subset).count()
+  byinctor = collection_contracts.find({"$and": [ctor_subset, notAttack]}).count()
   print(byinctor)
 
   print("bytecode is not subeset ot init bytecode modulo padding (created code on deployment?)")
-  byinctor_modulo_padding = collection_contracts.find({"$and": [ctor_subset_nullPadded,ctor_subset]}).count()
+  byinctor_modulo_padding = collection_contracts.find({"$and": [ctor_subset_nullPadded,ctor_subset, notAttack]}).count()
   print(byinctor_modulo_padding)
 
 
@@ -158,8 +164,8 @@ if arg1 != "sanity":
 
 
   print("contracts with swarm hashes")
-  swarm_content = collection_contracts.find({"swarm_content": {"$not": {"$eq": None}}})
-  swarm_hashes = collection_contracts.find({"swarm_hash": {"$not": {"$eq": None}}})
+  swarm_content = collection_contracts.find({"$and": [{"swarm_content": {"$not": {"$eq": None}}}, notAttack]})
+  swarm_hashes = collection_contracts.find({"$and": [{"swarm_hash": {"$not": {"$eq": None}}}, notAttack]})
   print("hashes: " + str(swarm_hashes.count()))
   print("content: " + str(swarm_content.count()))
 

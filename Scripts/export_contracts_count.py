@@ -9,7 +9,8 @@ def printRange(f,t):
   suicide_block_gt = {"suicide_block": {"$gt": t }}
   suicide_not_exists = {"suicide_block": {"$exists": False}}
   suicide_or_not_exists = {"$or": [suicide_block_gt, suicide_not_exists]}
-  cd = collection_contracts.find({"$and": [block_gt, block_lt, suicide_or_not_exists]}).count()
+  notAttack ={"attack": {"$exists": False}}
+  cd = collection_contracts.find({"$and": [block_gt, block_lt, suicide_or_not_exists, notAttack]}).count()
   print('{0};{1};{2}'.format(f,t, cd))
 
 
@@ -30,7 +31,7 @@ STEP = 100000
 i=0
 while i <= MAX:
   n_i = i + STEP
-  printRange(0, min(n_i, MAX))
+  printRange(i, min(n_i, MAX))
   i = n_i
 
 #printRange(i, MAX)

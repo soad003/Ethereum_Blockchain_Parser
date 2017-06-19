@@ -32,6 +32,7 @@ class State(object):
     self.disabled_contracts = defaultdict()
     self.nodes_with_loops = defaultdict()
     self.has_calls_and_error = defaultdict()
+    self.attack = defaultdict()
 
 
 
@@ -92,6 +93,9 @@ def handle_has_calls(calls, block, addr):
     if call_addr == None:
       DG.add_edge(addr, UNKNOWNNAME)
     else:
+      if call_addr in state.attack:
+        print(call_addr + " is in attack")
+
       # only include calls to active contracts
       if call_addr in state.active_contracts:
         DG.add_edge(addr, call_addr)
@@ -112,6 +116,8 @@ def create_graph(from_b, to_b):
   # MONGO FILTERS
   nonNullBytecode = {"bytecode": { "$not": { "$eq": None}}}
   nullBytecode = {"bytecode": None}
+  notAttack ={"attack": {"$exists": False}}
+  #notAttack = {}
 
   block_gt = {"block_number": {"$gt": from_b }}
   block_lt = {"block_number": {"$lt": to_b }}
@@ -122,12 +128,12 @@ def create_graph(from_b, to_b):
   suicide_smaller_than_to = {"suicide_block": {"$lt": to_b }}
 
   # INIT Active Contracts
-  contracts = collection.find({"$and": [block_gt, block_lt, suicide_or_not_exists]})
+  contracts = collection.find({"$and": [block_gt, block_lt, suicide_or_not_exists, notAttack]})
   for c in contracts:
     state.active_contracts[sanatizeAddr(c["address"])] = True
 
   # INIT Disabled Contracts
-  contracts = collection.find({ "$and": [suicide_smaller_than_to]})
+  contracts = collection.find({ "$and": [suicide_smaller_than_to, notAttack]})
   for c in contracts:
     state.disabled_contracts[sanatizeAddr(c["address"])] = True
 
@@ -138,7 +144,7 @@ def create_graph(from_b, to_b):
     DG.add_node(sanatizeAddr(adr), trustless = True)
 
   # LOAD ALL ACTIVE CONTRACTS
-  contracts = collection.find({ "$and": [block_gt, block_lt, suicide_or_not_exists]}) # .limit(10000)
+  contracts = collection.find({ "$and": [block_gt, block_lt, suicide_or_not_exists, notAttack]}) # .limit(10000)
   nr = contracts.count()
   i = 0
 
