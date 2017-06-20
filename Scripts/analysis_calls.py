@@ -63,9 +63,12 @@ def handle_analysis_error(contract, block, addr):
     print(contract["calls"])
     state.has_calls_and_error[addr] = True
   state.analysis_errors[addr] = True
-  DG.add_node(addr, trustless = False, block_nr = block, trivially_not = True)
+  inAttack = False
+  if "attack" in contract:
+    inAttack = contract["attack"]
+  DG.add_node(addr, trustless = False, attack = inAttack,block_nr = block, trivially_not = True)
 
-def handle_has_calls(calls, block, addr):
+def handle_has_calls(calls, block, addr, inAttack):
   #print(calls)
   ctor = calls["ctor"]
   code = calls["code"]
@@ -79,10 +82,10 @@ def handle_has_calls(calls, block, addr):
   # considred trivially not safe if one call not static
   triviallyNotSafe = any(sanatizeAddr(call["address"]) == None for call in code)
   if triviallyNotSafe:
-    DG.add_node(addr, trustless = False, block_nr = block, trivially_not = True)
+    DG.add_node(addr, trustless = False, attack = inAttack, block_nr = block, trivially_not = True)
   else:
     #safe until one of the successors is not safe
-    DG.add_node(addr, block_nr = block)
+    DG.add_node(addr, block_nr = block, attack = inAttack)
 
   # ADD EDGES
   for call in code:
@@ -93,7 +96,6 @@ def handle_has_calls(calls, block, addr):
     else:
       if call_addr in state.attack:
         print(call_addr + " is in attack")
-
 
       # only include calls to active contracts
       if call_addr in state.active_contracts:
@@ -115,8 +117,8 @@ def create_graph():
   # MONGO FILTERS
   nonNullBytecode = {"bytecode": { "$not": { "$eq": None}}}
   nullBytecode = {"bytecode": None}
-  notAttack ={"attack": {"$exists": False}}
-  #notAttack = {}
+  #notAttack ={"attack": {"$exists": False}}
+  notAttack = {}
 
   # INIT Active Contracts
   contracts = collection.find({ "$and": [nonNullBytecode, notAttack]})
@@ -134,10 +136,10 @@ def create_graph():
     state.attack[sanatizeAddr(c["address"])] = True
 
   # INIT FIXED GRAPH NODES With trustless properties
-  DG.add_node(UNKNOWNNAME, trustless = False)
+  DG.add_node(UNKNOWNNAME, attack = False, trustless = False)
   # hardcoded are assumed safe
   for adr in HARDCODED_ADDRESSES:
-    DG.add_node(sanatizeAddr(adr), trustless = True)
+    DG.add_node(sanatizeAddr(adr), attack = False, trustless = True)
 
   # LOAD ALL ACTIVE CONTRACTS
   contracts = collection.find({ "$and": [nonNullBytecode, notAttack]}) # .limit(10000)
@@ -149,6 +151,9 @@ def create_graph():
     i += 1
     adr = sanatizeAddr(contract["address"])
     block = int(contract["block_number"])
+    inAttack = False
+    if "attack" in contract:
+      inAttack = contract["attack"]
 
     # sort out contracts with analysis errors assume we do not trust them
     if "calls_error" in contract:
@@ -160,11 +165,11 @@ def create_graph():
 
     if calls:
       print(str(i) + "/" + str(nr) + " : " + str(adr) + ": not Trivially trustless")
-      handle_has_calls(calls, block, adr)
+      handle_has_calls(calls, block, adr, inAttack)
     else:
       #Case Trivially trustless because no interaction.
       print(str(i) + "/" + str(nr) + " : " + str(adr) + ": Trivially trustless")
-      DG.add_node(adr, trustless = True, block_nr = block, trivially = True)
+      DG.add_node(adr, trustless = True, attack = inAttack, block_nr = block, trivially = True)
 
 def safe_state():
   with open(STATE_FILE, 'w') as file_descriptor:
@@ -206,11 +211,14 @@ def analyse_graph():
   print("annotated blocknumber " + str(len(list(filter(lambda x: "block_nr" in DG.node[x], DG.nodes())))))
   print("trustless " + str(len(list(filter(lambda x: "trustless" in DG.node[x] and DG.node[x]["trustless"], DG.nodes())))))
 
+  print("attack annotated " + str(len(list(filter(lambda x: "attack" in DG.node[x], DG.nodes())))))
+  print("attack " + str(len(list(filter(lambda x: "attack" in DG.node[x] and DG.node[x]["attack"] == True, DG.nodes())))))
+
   print("largest degree")
   print(list(map(lambda x: (x, DG.degree(x)),take(7, sorted(DG.nodes(), key = lambda x: DG.degree(x), reverse=True)))))
 
   print("largest out degree")
-  print(list(map(lambda x: (x, DG.out_degree(x)),take(20, sorted(DG.nodes(), key = lambda x: DG.out_degree(x), reverse=True)))))
+  print(list(map(lambda x: (x, DG.out_degree(x)),take(200, sorted(DG.nodes(), key = lambda x: DG.out_degree(x), reverse=True)))))
 
   print("largest in degree")
   print(list(map(lambda x: (x, DG.in_degree(x)),take(7, sorted(DG.nodes(), key = lambda x: DG.in_degree(x), reverse=True)))))
