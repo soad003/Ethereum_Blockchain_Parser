@@ -224,6 +224,10 @@ def analyse_graph():
   print(list(map(lambda x: (x, DG.in_degree(x)),take(7, sorted(DG.nodes(), key = lambda x: DG.in_degree(x), reverse=True)))))
   print()
 
+  print("the DAO")
+  print(DG.node[sanatizeAddr("0xBB9bc244D798123fDe783fCc1C72d3Bb8C189413")])
+ 
+
 # MAIN
 def main():
   init_state()
